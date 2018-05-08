@@ -1,3 +1,5 @@
+# https://www.redblobgames.com/grids/hexagons/
+
 import copy
 import math
 
