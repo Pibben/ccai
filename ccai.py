@@ -2,6 +2,8 @@
 
 import copy
 
+from hexagons import HexGrid, OptionalCell
+
 
 def width2(line):
     if line < 4:
@@ -19,25 +21,6 @@ def width(line):
         return width(16 - line)
 
 
-class BoardState:
-    def __init__(self):
-        self.state = []
-        for x in range(17):
-            self.state.append([0] * width(x))
-
-    def reset(self):
-        for x in range(4):
-            self.state[x] = [1] * width(x)
-
-        for x in range(13, 17):
-            self.state[x] = [2] * width(x)
-
-    def pprint(self):
-        for x in range(16, -1, -1):
-            print("{: ^50s}".format(" ".join([str(i) for i in self.state[x]])))
-        print("")
-
-
 class Move:
     pass
 
@@ -47,129 +30,44 @@ class Player:
         self.id = id
         self.target_row = target_row
 
+    def __str__(self):
+        return str(self.id)
+
 
 class GameLogic:
-    def decode_target(self, row, i, dir, steps):
+    def evolve(self, move, grid):
+        grid.move(*move[0], *move[1])
 
-        narrowing_fwd = (width(row) - width(row + 1) + 1) // 2
-        narrowing_bwd = (width(row) - width(row - 1) + 1) // 2
+    def generate_all_valid_moves(self, grid, player):
+        for (q, r) in grid.iterate():
+            cell = grid.get_cell(q, r)
+            if cell.get_value() is player:
+                neighbours = [(1, 0), (1, -1), (0, -1), (-1, 0), (-1, 1), (0, 1)]
+                for n in neighbours:
+                    tq, tr = q + n[0], r + n[1] #TODO
+                    dest_cell = grid.get_cell(tq, tr)
+                    if dest_cell and dest_cell.is_valid() and not dest_cell.get_value():
+                        yield ((q, r), (tq, tr))
 
-        if dir == 'r':
-            retval = (row, i + 1)
-        elif dir == 'l':
-            retval = (row, i - 1)
-        elif dir == 'lf':
-            retval = (row + 1, i - narrowing_fwd)
-        elif dir == 'rf':
-            retval = (row + 1, i - narrowing_fwd + 1)
-        elif dir == 'lb':
-            retval = (row - 1, i - narrowing_bwd)
-        elif dir == 'rb':
-            retval = (row - 1, i - narrowing_bwd + 1)
-        else:
-            print("ERROR!")
-            retval = ()
-
-        if steps == 1:
-            return retval
-        else:
-            return self.decode_target(*retval, dir, 1)
-
-    def evolve(self, move, state):
-        ((frow, fi), (trow, ti)) = move
-        player_id = state.state[frow][fi]
-        state.state[frow][fi] = 0
-        state.state[trow][ti] = player_id
-
-    def is_move_within_board(self, move):
-        (row, i, dir, steps) = move
-
-        # print(row, i, dir)
-
-        if row == 0 and dir in ['rb', 'lb']:
-            return False
-
-        if row == 16 and dir in ['rf', 'lf']:
-            return False
-
-        narrowing_fwd = (width(row) - width(row + 1) + 1) // 2
-        narrowing_bwd = (width(row) - width(row - 1) + 1) // 2
-
-        if dir == 'l':
-            if i == 0:
-                return False
-        elif dir == 'lf':
-            if i < narrowing_fwd or i > width(row) - narrowing_fwd:
-                return False
-        elif dir == 'rf':
-            if i < narrowing_fwd - 1 or i > width(row) - narrowing_fwd - 1:
-                return False
-        elif dir == 'r':
-            if i == width(row) - 1:
-                return False
-        elif dir == 'lb':
-            if i < narrowing_bwd or i > width(row) - narrowing_bwd:
-                return False
-        elif dir == 'rb':
-            if i < narrowing_bwd - 1 or i > width(row) - narrowing_bwd - 1:
-                return False
-
-        return True
-
-    def is_valid_move(self, move, state, player):
-        if not self.is_move_within_board(move):
-            return False
-
-        (row, i, dir, steps) = move
-
-        (trow, ti) = self.decode_target(row, i, dir, 1)
-
-        if state[trow][ti] != 0:
-            if steps == 1:
-                return False
-            else:
-                return self.is_valid_move((trow, ti, dir, 1), state, player)
-        else:
-            if steps == 2:
-                return False
-
-        return True
-
-    def generate_all_valid_moves(self, state, player):
-        state = state.state
-        for row in range(17):
-            for i in range(len(state[row])):
-                if state[row][i] == player.id:
-                    for dir in ['l', 'lf', 'rf', 'r', 'rb', 'lb']:
-                        if self.is_valid_move((row, i, dir, 1), state, player):
-                            (trow, ti) = self.decode_target(row, i, dir, 1)
-                            yield ((row, i), (trow, ti))
-
-                        (prow, pi) = (row, i)
-
-                        while self.is_valid_move((prow, pi, dir, 2), state, player):
-                            (trow, ti) = self.decode_target(prow, pi, dir, 2)
-                            yield ((prow, pi), (trow, ti))
-                            (prow, pi) = (trow, ti)
-
-    def get_score(self, state, player):
-        state = state.state
+    def get_score(self, grid, player):
         sum = 0
-        for row in range(17):
-            for i in range(len(state[row])):
-                if state[row][i] == player.id:
-                    sum += abs((16 - player.target_row) - row)
+
+        for (q, r) in grid.iterate():
+            cell = grid.get_cell(q, r)
+            if cell.get_value() and cell.get_value().id == player.id: #TODO
+                sum += abs((16 - player.target_row) - r)
 
         return sum
 
-    def get_optimal_move(self, state, player):
+    def get_optimal_move(self, grid, player):
         top_score = 0
         top_move = ()
-        gen = g.generate_all_valid_moves(state, player)
+        gen = g.generate_all_valid_moves(grid, player)
         for move in gen:
-            ap = copy.deepcopy(state)
+            ap = copy.deepcopy(grid)
             g.evolve(move, ap)
             score = g.get_score(ap, player)
+            print(move, score)
 
             if score > top_score:
                 top_move = move
@@ -178,24 +76,41 @@ class GameLogic:
         return top_move
 
 
+def generate_star(players):
+    def set_valid(q, r):
+        hg.get_cell(q, r).set_valid(True)
+
+    hg = HexGrid(17, 13, OptionalCell(None, False))
+
+    for r in range(9):
+        q_range = range(6 - r, 7) if r < 4 else range(hg.first_column(4), 11 - r + 4)
+        for q in q_range:
+            set_valid(q, r)
+            set_valid(q + hg.first_column(16) + r, 16 - r)
+            if r < 4:
+                hg.get_cell(q, r).set_value(players[0])
+                hg.get_cell(q + hg.first_column(16) + r, 16 - r).set_value(players[1])
+    return hg
+
+
 if __name__ == '__main__':
-    a = BoardState()
-    a.reset()
-
-    a.pprint()
-
-    g = GameLogic()
-
     p1 = Player(1, 16)
     p2 = Player(2, 0)
 
+    a = generate_star([p1, p2])
+
+    print(a)
+
+    g = GameLogic()
+
     for i in range(10):
         topMove = g.get_optimal_move(a, p1)
+        print(topMove)
         g.evolve(topMove, a)
 
         topMove = g.get_optimal_move(a, p2)
         g.evolve(topMove, a)
 
-        a.pprint()
+        print(a)
         print(g.get_score(a, p1))
         input("->")

@@ -9,8 +9,13 @@ class Storage:
         self.array = [[copy.copy(prototype_cell) for _ in range(w)] for _ in range(h)]
 
     def get(self, q, r):
-        #print("(%d,%d) -> array[%d][%d]" % (q, r, r, q - self.first_column(r)))
-        return self.array[r][q - self.first_column(r)]
+        try:
+            return self.array[r][q - self.first_column(r)]
+        except IndexError:
+            return None
+
+    def set(self, q, r, cell):
+        self.array[r][q - self.first_column(r)] = cell
 
 
 class RectangleStorage(Storage):
@@ -47,11 +52,30 @@ class HexGrid:
     def first_column(self, r):
         return self.storage.first_column(r)
 
+    def iterate(self):
+        for r in range(self.rows):
+            offset = self.first_column(r)
+            for q in range(offset, self.columns + offset):
+                yield q, r
+
+    def move(self, from_q, from_r, to_q, to_r):
+        src_cell = self.storage.get(from_q, from_r)
+        dst_cell = self.storage.get(to_q, to_r)
+        dst_cell.set_value(src_cell.get_value())
+        src_cell.set_value(None)
+
 
 class OptionalCell:
     def __init__(self, default_value, valid=True):
         self.value = default_value
         self.valid = valid
+        self.default_value = default_value
+
+    def reset(self):
+        self.value = self.default_value
+
+    def set_value(self, value):
+        self.value = value
 
     def get_value(self):
         return self.value
@@ -59,25 +83,21 @@ class OptionalCell:
     def set_valid(self, value):
         self.valid = value
 
+    def is_valid(self):
+        return self.valid
+
     def __str__(self):
-        return self.value if self.valid else ' '
-
-
-def generate_star():
-    def set_valid(q, r):
-        hg.get_cell(q, r).set_valid(True)
-
-    hg = HexGrid(17, 13, OptionalCell('o', False))
-
-    for r in range(9):
-        q_range = range(6 - r, 7) if r < 4 else range(hg.first_column(4), 11 - r + 4)
-        for q in q_range:
-            set_valid(q, r)
-            set_valid(q + hg.first_column(16) + r, 16 - r)
-
-    return hg
+        if self.valid:
+            if self.value:
+                return str(self.value)
+            else:
+                return 'o'
+        else:
+            return ' '
 
 
 if __name__ == '__main__':
     hg = generate_star()
     print(hg)
+    for c in hg.iterate():
+        print(c)
