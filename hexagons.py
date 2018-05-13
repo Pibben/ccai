@@ -64,6 +64,12 @@ class HexGrid:
         dst_cell.set_value(src_cell.get_value())
         src_cell.set_value(None)
 
+    @staticmethod
+    def distance(a_q, a_r, b_q, b_r):
+        return (abs(a_q - b_q)
+                + abs(a_q + a_r - b_q - b_r)
+                + abs(a_r - b_r)) / 2
+
 
 class OptionalCell:
     def __init__(self, default_value, valid=True):

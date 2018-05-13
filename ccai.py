@@ -55,9 +55,11 @@ class GameLogic:
         for (q, r) in grid.iterate():
             cell = grid.get_cell(q, r)
             if cell.get_value() and cell.get_value().id == player.id: #TODO
-                sum += abs((16 - player.target_row) - r)
+                #sum += abs((16 - player.target_row) - r)
+                sum += grid.distance(q, r, *player.target_row)
+                #print(q, r, *player.target_row, grid.distance(q, r, *player.target_row))
 
-        return sum
+        return 1.0 / sum
 
     def get_optimal_move(self, grid, player):
         top_score = 0
@@ -67,7 +69,7 @@ class GameLogic:
             ap = copy.deepcopy(grid)
             g.evolve(move, ap)
             score = g.get_score(ap, player)
-            print(move, score)
+            #print(move, score)
 
             if score > top_score:
                 top_move = move
@@ -76,11 +78,9 @@ class GameLogic:
         return top_move
 
 
-def generate_star(players):
+def generate_star(hg, players):
     def set_valid(q, r):
         hg.get_cell(q, r).set_valid(True)
-
-    hg = HexGrid(17, 13, OptionalCell(None, False))
 
     for r in range(9):
         q_range = range(6 - r, 7) if r < 4 else range(hg.first_column(4), 11 - r + 4)
@@ -94,23 +94,26 @@ def generate_star(players):
 
 
 if __name__ == '__main__':
-    p1 = Player(1, 16)
-    p2 = Player(2, 0)
+    hg = HexGrid(17, 13, OptionalCell(None, False))
 
-    a = generate_star([p1, p2])
+    p1 = Player(1, (6 + hg.first_column(16), 16))
+    p2 = Player(2, (6, 0))
+
+    a = generate_star(hg, [p1, p2])
 
     print(a)
 
     g = GameLogic()
 
-    for i in range(10):
+    for i in range(1000):
         topMove = g.get_optimal_move(a, p1)
-        print(topMove)
+        #print(topMove)
         g.evolve(topMove, a)
 
         topMove = g.get_optimal_move(a, p2)
         g.evolve(topMove, a)
 
-        print(a)
-        print(g.get_score(a, p1))
-        input("->")
+        #print(g.get_score(a, p1))
+        if i > 100:
+            print(a)
+            input("->")
