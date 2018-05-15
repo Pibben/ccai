@@ -3,26 +3,6 @@
 from hexagons import HexGrid, OptionalCell
 
 
-def width2(line):
-    if line < 4:
-        return line + 1
-    elif line < 9:
-        return 13 - (line - 4)
-    else:
-        return width(16 - line)
-
-
-def width(line):
-    if line < 9:
-        return line + 1
-    else:
-        return width(16 - line)
-
-
-class Move:
-    pass
-
-
 class Player:
     def __init__(self, id, target_row):
         self.id = id
