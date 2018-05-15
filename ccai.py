@@ -35,8 +35,11 @@ class Player:
 
 
 class GameLogic:
-    def evolve(self, move, grid):
+    def do(self, move, grid):
         grid.move(*move[0], *move[1])
+
+    def undo(self, move, grid):
+        grid.move(*move[1], *move[0])
 
     def generate_all_valid_moves(self, grid, player):
         for (q, r) in grid.iterate():
@@ -64,11 +67,11 @@ class GameLogic:
     def get_optimal_move(self, grid, player):
         top_score = 0
         top_move = ()
-        gen = g.generate_all_valid_moves(grid, player)
+        gen = self.generate_all_valid_moves(grid, player)
         for move in gen:
-            ap = copy.deepcopy(grid)
-            g.evolve(move, ap)
-            score = g.get_score(ap, player)
+            self.do(move, grid)
+            score = self.get_score(grid, player)
+            self.undo(move, grid)
             #print(move, score)
 
             if score > top_score:
