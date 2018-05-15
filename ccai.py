@@ -1,7 +1,5 @@
 # https://www.redblobgames.com/grids/hexagons/
 
-import copy
-
 from hexagons import HexGrid, OptionalCell
 
 
@@ -64,21 +62,64 @@ class GameLogic:
 
         return 1.0 / sum
 
-    def get_optimal_move(self, grid, player):
+
+class Heuristic:
+    def __init__(self):
+        pass
+
+    def get_optimal_move(self, game_logic, grid, max_player, min_player):
         top_score = 0
         top_move = ()
-        gen = self.generate_all_valid_moves(grid, player)
+        gen = game_logic.generate_all_valid_moves(grid, max_player)
         for move in gen:
-            self.do(move, grid)
-            score = self.get_score(grid, player)
-            self.undo(move, grid)
-            #print(move, score)
+            game_logic.do(move, grid)
+            score = game_logic.get_score(grid, max_player)
+            game_logic.undo(move, grid)
 
             if score > top_score:
                 top_move = move
                 top_score = score
 
         return top_move
+
+
+class Minimax:
+    def __init__(self):
+        pass
+
+    def get_optimal_move(self, game_logic, grid, max_player, min_player):
+        def minimax(game_logic, grid, max_player, min_player, depth, maximize):
+
+            if depth == 0:
+                return game_logic.get_score(grid, max_player), (None, None)
+
+            gen = game_logic.generate_all_valid_moves(grid, max_player if maximize else min_player)
+
+            best_value = float('-inf') if maximize else float('inf')
+
+            count = 0 #TODO:
+            for move in gen:
+                game_logic.do(move, grid)
+                v,__ = minimax(game_logic, grid, max_player, min_player, depth - 1, not maximize)
+                game_logic.undo(move, grid)
+
+                if maximize:
+                    if v > best_value:
+                        best_value = v
+                        best_move = move
+                else:
+                    if v < best_value:
+                        best_value = v
+                        best_move = move
+
+                count += 1
+
+            if count == 0:
+                return game_logic.get_score(grid, max_player), (None, None)
+
+            return best_value, best_move
+
+        return minimax(game_logic, grid, max_player, min_player, 3, True)[1]
 
 
 def generate_star(hg, players):
@@ -107,16 +148,15 @@ if __name__ == '__main__':
     print(a)
 
     g = GameLogic()
+    opt = Minimax()
 
     for i in range(1000):
-        topMove = g.get_optimal_move(a, p1)
-        #print(topMove)
-        g.evolve(topMove, a)
+        topMove = opt.get_optimal_move(g, a, p1, p2)
+        g.do(topMove, a)
 
-        topMove = g.get_optimal_move(a, p2)
-        g.evolve(topMove, a)
+        topMove = opt.get_optimal_move(g, a, p2, p1)
+        g.do(topMove, a)
 
-        #print(g.get_score(a, p1))
-        if i > 100:
+        if i > 1:
             print(a)
             input("->")
