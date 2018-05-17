@@ -1,4 +1,7 @@
 # https://www.redblobgames.com/grids/hexagons/
+import cProfile
+import functools
+import time
 
 from hexagons import HexGrid, OptionalCell
 
@@ -25,7 +28,7 @@ class GameLogic:
             if cell.get_value() is player:
                 neighbours = [(1, 0), (1, -1), (0, -1), (-1, 0), (-1, 1), (0, 1)]
                 for n in neighbours:
-                    tq, tr = q + n[0], r + n[1] #TODO
+                    tq, tr = q + n[0], r + n[1]  # TODO
                     dest_cell = grid.get_cell(tq, tr)
                     if dest_cell and dest_cell.is_valid() and not dest_cell.get_value():
                         yield ((q, r), (tq, tr))
@@ -34,8 +37,9 @@ class GameLogic:
         sum = 0
 
         for (q, r) in grid.iterate():
-            cell = grid.get_cell(q, r)
-            if cell.get_value() and cell.get_value().id == player.id: #TODO
+            cell_value = grid.get_cell(q, r).get_value()
+
+            if cell_value and cell_value.id == player.id: #TODO
                 #sum += abs((16 - player.target_row) - r)
                 sum += grid.distance(q, r, *player.target_row)
                 #print(q, r, *player.target_row, grid.distance(q, r, *player.target_row))
@@ -77,10 +81,10 @@ class Minimax:
 
             best_value = float('-inf') if maximize else float('inf')
 
-            count = 0 #TODO:
+            count = 0  # TODO:
             for move in gen:
                 game_logic.do(move, grid)
-                v,__ = minimax(game_logic, grid, max_player, min_player, depth - 1, not maximize)
+                v, __ = minimax(game_logic, grid, max_player, min_player, depth - 1, not maximize)
                 game_logic.undo(move, grid)
 
                 if maximize:
@@ -100,6 +104,49 @@ class Minimax:
             return best_value, best_move
 
         return minimax(game_logic, grid, max_player, min_player, 3, True)[1]
+
+
+class Alphabeta:
+    def __init__(self):
+        pass
+
+    def get_optimal_move(self, game_logic, grid, max_player, min_player):
+        def alphabeta(game_logic, grid, max_player, min_player, depth, alpha, beta, maximize):
+
+            if depth == 0:
+                return game_logic.get_score(grid, max_player), (None, None)
+
+            gen = game_logic.generate_all_valid_moves(grid, max_player if maximize else min_player)
+
+            best_value = float('-inf') if maximize else float('inf')
+
+            count = 0  # TODO:
+            for move in gen:
+                count += 1
+
+                game_logic.do(move, grid)
+                v, __ = alphabeta(game_logic, grid, max_player, min_player, depth - 1, alpha, beta, not maximize)
+                game_logic.undo(move, grid)
+
+                if maximize:
+                    if v > best_value:
+                        best_value = v
+                        best_move = move
+                    alpha = max(alpha, v)
+                else:
+                    if v < best_value:
+                        best_value = v
+                        best_move = move
+                    beta = min(beta, v)
+                if beta <= alpha:
+                    break
+
+            if count == 0:
+                return game_logic.get_score(grid, max_player), (None, None)
+
+            return best_value, best_move
+
+        return alphabeta(game_logic, grid, max_player, min_player, 3, float('-inf'), float('inf'), True)[1]
 
 
 def generate_star(hg, players):
@@ -128,7 +175,7 @@ if __name__ == '__main__':
     print(a)
 
     g = GameLogic()
-    opt = Minimax()
+    opt = Alphabeta()
 
     for i in range(1000):
         topMove = opt.get_optimal_move(g, a, p1, p2)
