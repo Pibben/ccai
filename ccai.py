@@ -2,6 +2,7 @@
 import cProfile
 import functools
 import time
+import numpy as np
 
 from hexagons import HexGrid
 
@@ -34,17 +35,12 @@ class GameLogic:
                         yield ((q, r), (tq, tr))
 
     def get_score(self, grid, player):
-        sum = 0
+        def dist(a):
+            w, _ = np.where(a == player.id)
+            w = np.abs(player.target_row[1] - w)
+            return np.sum(w)
 
-        for (q, r) in grid.iterate():
-            cell_value = grid.get_cell(q, r)
-
-            if cell_value is not None and cell_value == player.id:
-                #sum += abs((16 - player.target_row) - r)
-                sum += grid.distance(q, r, *player.target_row)
-                #print(q, r, *player.target_row, grid.distance(q, r, *player.target_row))
-
-        return 1.0 / sum
+        return 1.0 / grid.run(dist)
 
 
 class Heuristic:
@@ -103,7 +99,7 @@ class Minimax:
 
             return best_value, best_move
 
-        return minimax(game_logic, grid, max_player, min_player, 3, True)[1]
+        return minimax(game_logic, grid, max_player, min_player, 4, True)[1]
 
 
 class Alphabeta:
@@ -146,7 +142,7 @@ class Alphabeta:
 
             return best_value, best_move
 
-        return alphabeta(game_logic, grid, max_player, min_player, 3, float('-inf'), float('inf'), True)[1]
+        return alphabeta(game_logic, grid, max_player, min_player, 4, float('-inf'), float('inf'), True)[1]
 
 
 def generate_star(hg):

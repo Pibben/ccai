@@ -16,6 +16,8 @@ class Storage:
     def set(self, q, r, cell):
         self.array[r][q - self.first_column(r)] = cell
 
+    def run(self, func):
+        return func(self.array)
 
 class RectangleStorage(Storage):
     def __init__(self, rows, columns, default_value):
@@ -70,6 +72,9 @@ class HexGrid:
         src_cell = self.storage.get(from_q, from_r)
         self.storage.set(to_q, to_r, src_cell)
         self.storage.set(from_q, from_r, 0)
+
+    def run(self, func):
+        return self.storage.run(func)
 
     @staticmethod
     def distance(a_q, a_r, b_q, b_r):
