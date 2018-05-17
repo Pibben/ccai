@@ -1,12 +1,11 @@
-import copy
 import math
-
+import numpy as np
 
 class Storage:
     def __init__(self, rows, columns, default_value):
         h = rows
         w = columns - self.first_column(rows)
-        self.array = [[default_value for _ in range(w)] for _ in range(h)]
+        self.array = np.ones((h, w)) * default_value
 
     def get(self, q, r):
         try:
@@ -45,7 +44,7 @@ class HexGrid:
                 if value == 0:
                     retval += 'o'
                 elif value > 0:
-                    retval += str(value)
+                    retval += str(int(value))
                 else:
                     retval += ' '
                 retval += ' '
