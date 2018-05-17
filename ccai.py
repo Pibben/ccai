@@ -3,7 +3,7 @@ import cProfile
 import functools
 import time
 
-from hexagons import HexGrid, OptionalCell
+from hexagons import HexGrid
 
 
 class Player:
@@ -25,21 +25,21 @@ class GameLogic:
     def generate_all_valid_moves(self, grid, player):
         for (q, r) in grid.iterate():
             cell = grid.get_cell(q, r)
-            if cell.get_value() is player:
+            if cell == player.id:
                 neighbours = [(1, 0), (1, -1), (0, -1), (-1, 0), (-1, 1), (0, 1)]
                 for n in neighbours:
                     tq, tr = q + n[0], r + n[1]  # TODO
                     dest_cell = grid.get_cell(tq, tr)
-                    if dest_cell and dest_cell.is_valid() and not dest_cell.get_value():
+                    if dest_cell is not None and dest_cell == 0:
                         yield ((q, r), (tq, tr))
 
     def get_score(self, grid, player):
         sum = 0
 
         for (q, r) in grid.iterate():
-            cell_value = grid.get_cell(q, r).get_value()
+            cell_value = grid.get_cell(q, r)
 
-            if cell_value and cell_value.id == player.id: #TODO
+            if cell_value is not None and cell_value == player.id:
                 #sum += abs((16 - player.target_row) - r)
                 sum += grid.distance(q, r, *player.target_row)
                 #print(q, r, *player.target_row, grid.distance(q, r, *player.target_row))
@@ -149,9 +149,9 @@ class Alphabeta:
         return alphabeta(game_logic, grid, max_player, min_player, 3, float('-inf'), float('inf'), True)[1]
 
 
-def generate_star(hg, players):
+def generate_star(hg):
     def set_valid(q, r):
-        hg.get_cell(q, r).set_valid(True)
+        hg.set_cell(q, r, 0)
 
     for r in range(9):
         q_range = range(6 - r, 7) if r < 4 else range(hg.first_column(4), 11 - r + 4)
@@ -159,18 +159,18 @@ def generate_star(hg, players):
             set_valid(q, r)
             set_valid(q + hg.first_column(16) + r, 16 - r)
             if r < 4:
-                hg.get_cell(q, r).set_value(players[0])
-                hg.get_cell(q + hg.first_column(16) + r, 16 - r).set_value(players[1])
+                hg.set_cell(q, r, 1)
+                hg.set_cell(q + hg.first_column(16) + r, 16 - r, 2)
     return hg
 
 
 if __name__ == '__main__':
-    hg = HexGrid(17, 13, OptionalCell(None, False))
+    hg = HexGrid(17, 13, -1)
 
     p1 = Player(1, (6 + hg.first_column(16), 16))
     p2 = Player(2, (6, 0))
 
-    a = generate_star(hg, [p1, p2])
+    a = generate_star(hg)
 
     print(a)
 

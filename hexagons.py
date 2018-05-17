@@ -3,10 +3,10 @@ import math
 
 
 class Storage:
-    def __init__(self, rows, columns, prototype_cell):
+    def __init__(self, rows, columns, default_value):
         h = rows
         w = columns - self.first_column(rows)
-        self.array = [[copy.copy(prototype_cell) for _ in range(w)] for _ in range(h)]
+        self.array = [[default_value for _ in range(w)] for _ in range(h)]
 
     def get(self, q, r):
         try:
@@ -19,8 +19,8 @@ class Storage:
 
 
 class RectangleStorage(Storage):
-    def __init__(self, rows, columns, prototype_cell):
-        super().__init__(rows, columns, prototype_cell)
+    def __init__(self, rows, columns, default_value):
+        super().__init__(rows, columns, default_value)
         pass
 
     @staticmethod
@@ -29,10 +29,10 @@ class RectangleStorage(Storage):
 
 
 class HexGrid:
-    def __init__(self, rows, columns, prototype_cell):
+    def __init__(self, rows, columns, default_value):
         self.rows = rows
         self.columns = columns
-        self.storage = RectangleStorage(rows, columns, prototype_cell)
+        self.storage = RectangleStorage(rows, columns, default_value)
 
     def __str__(self):
         retval = ''
@@ -41,13 +41,22 @@ class HexGrid:
                 retval += ' '
             offset = self.storage.first_column(r)
             for q in range(offset, self.columns + offset):
-                retval += str(self.storage.get(q, r))
+                value = self.storage.get(q, r)
+                if value == 0:
+                    retval += 'o'
+                elif value > 0:
+                    retval += str(value)
+                else:
+                    retval += ' '
                 retval += ' '
             retval += '\n'
         return retval
 
     def get_cell(self, q, r):
         return self.storage.get(q, r)
+
+    def set_cell(self, q, r, value):
+        self.storage.set(q, r, value)
 
     def first_column(self, r):
         return self.storage.first_column(r)
@@ -60,46 +69,14 @@ class HexGrid:
 
     def move(self, from_q, from_r, to_q, to_r):
         src_cell = self.storage.get(from_q, from_r)
-        dst_cell = self.storage.get(to_q, to_r)
-        dst_cell.set_value(src_cell.get_value())
-        src_cell.set_value(None)
+        self.storage.set(to_q, to_r, src_cell)
+        self.storage.set(from_q, from_r, 0)
 
     @staticmethod
     def distance(a_q, a_r, b_q, b_r):
         return (abs(a_q - b_q)
                 + abs(a_q + a_r - b_q - b_r)
                 + abs(a_r - b_r)) / 2
-
-
-class OptionalCell:
-    def __init__(self, default_value, valid=True):
-        self.value = default_value
-        self.valid = valid
-        self.default_value = default_value
-
-    def reset(self):
-        self.value = self.default_value
-
-    def set_value(self, value):
-        self.value = value
-
-    def get_value(self):
-        return self.value
-
-    def set_valid(self, value):
-        self.valid = value
-
-    def is_valid(self):
-        return self.valid
-
-    def __str__(self):
-        if self.valid:
-            if self.value:
-                return str(self.value)
-            else:
-                return 'o'
-        else:
-            return ' '
 
 
 if __name__ == '__main__':
