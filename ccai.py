@@ -160,13 +160,57 @@ def generate_star(hg):
     return hg
 
 
+start = """\
+            2             
+           o 2             
+          o o o           
+         o o o o           
+o o o o o o o o o 2 2 2 2 
+ o o o o o o o o o o 2 2   
+  o o o o o o o o o 2 2   
+   o o o o o o o o o o     
+    o o o o o o o o o     
+   o o o o o o o o o o     
+  o o o o o o o o o o o   
+ o o o o o o o o o o o o   
+1 o 1 1 o o o o o 1 1 o o 
+         o o o o           
+          1 1 1           
+           o 1             
+            1            
+"""
+
+
+def load(hg, string):
+    def set_cell(q, r, value):
+        hg.set_cell(q, r, value)
+
+    string = string.replace('o', '0')
+    tokens = string.split()
+    string2 = ''.join(reversed(string.splitlines()))
+    tokens2 = string2.split()
+    print(tokens2)
+    assert len(tokens) == 121
+    index = 0
+
+    for r in range(9):
+        q_range = range(6 - r, 7) if r < 4 else range(hg.first_column(4), 11 - r + 4)
+        for q in q_range:
+            set_cell(q, r, int(tokens[index]))
+            set_cell(q + hg.first_column(16) + r, 16 - r, int(tokens2[index]))
+            index += 1
+
+    return hg
+
+
 if __name__ == '__main__':
     hg = HexGrid(17, 13, -1)
 
     p1 = Player(1, (6 + hg.first_column(16), 16))
     p2 = Player(2, (6, 0))
 
-    a = generate_star(hg)
+    #a = generate_star(hg)
+    a = load(hg, start)
 
     print(a)
 
